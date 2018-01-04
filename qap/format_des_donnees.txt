@@ -1,0 +1,5 @@
+nombre d'entrepôts / emplacements
+membre droit X de la contrainte Somme(distances * flux) <= X
+
+Matrice des flux
+Matrice des distances
