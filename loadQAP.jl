@@ -35,6 +35,7 @@ function loadSPP(fname)
           j+=1
         end
     end
+	
     close(f)
     println(flux)
     return X, flux, distances
