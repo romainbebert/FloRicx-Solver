@@ -28,12 +28,13 @@
 
 type Generation 
 	nbInd::Int64
-	people::Array{Array{Int8,1},1} #Population of solutions
+	people::Array{Array{Int64,1},1} #Population of solutions
 	fitnesses::Array{Int64} #To delete and only have the barrel ? 
 	roulette::Array{Int64} #fitness' cumsum for random picking
 	mchance::Float64 #Mutation chance
 	gen_mean::Float64 #Fitness mean for this generation
 	gen_best::Int64 #Best fitness of the generation
+	fittest::Array{Int64,1} #Best solution of the generation (probable duplicate with gen_best but it makes some things easier to code)
 end 
 
 #-------------------------------------------------------------------
@@ -59,11 +60,14 @@ function firstGen(flux, distances, nbInd)
 		fitnesses[i] = fitness(gen[i], flux, distances)
 
 		if fitnesses[i] < curr_best
+			curr_best = fitnesses[i]
+			fittest = gen[i]
+		end
 	end
 	
 	roulette = cumsum(fitnesses)
 
-	return Generation(nbInd, starter, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best)
+	return Generation(nbInd, starter, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
 end
 
 function nextGen(objective, constraints, people::Generation)
@@ -115,9 +119,55 @@ function mask_crossover(p1,p2)
 	end
 end
 
+#= Etapes d'OX :
+	- Choisir deux points de coupe
+	- Enfant 1 prend la partie coupée de parent1
+	- Enfant 1 récupère les éléments de parent2 ne se trouvant pas dans subseq1
+	- Idem pour Enfant 2 en inversant les parents
+=#
+function OX_crossover(p1,p2)
+	nbVar = size(p1,1)
+	num1 = rand(1:nbVar)
+	num2 = rand(1:nbVar)
+	deb = min(num1, num2)
+	fin = max(num1, num2)
+	c1 = zeros(Int64,nbVar); c2 = zeros(Int64,nbVar)
+
+	subseq1 = p1[deb:fin]
+	subseq2 = p2[deb:fin]
+	c1[deb:fin] = subseq1
+	c2[deb:fin] = subseq2
+	remaining1 = filter(x -> !in(x,subseq1), p2)
+	remaining2 = filter(x -> !in(x,subseq2), p1)
+
+	for i in 1:nbVar
+		if c1[i] == 0
+			c1[i] = shift!(remaining1)
+		end
+		if c2[i] == 0
+			c2[i] = shift!(remaining2)
+		end
+	end
+
+	return c1,c2
+	#http://www.rubicite.com/Tutorials/GeneticAlgorithms/CrossoverOperators/Order1CrossoverOperator.aspx
+end
+
 function mutation(x,nbVar)
-	ind = rand(1:nbVar)
-	x[ind] == 0 ? x[ind]=1 : x[ind]=0
+	num1 = rand(1:nbVar)
+	num2 = rand(1:nbVar)
+	#Pas indispensable mais ça serait dommage de gâcher une occurence de mutation
+	while num1 == num2
+		num2 = rand(1:nbVar)
+	end
+
+	swap1 = min(num1, num2)
+	swap2 = max(num1, num2)
+
+	tmp = x[swap1]
+	x[swap1] = x[swap2]
+	x[swap2] = tmp
+
 	return x
 end
 
