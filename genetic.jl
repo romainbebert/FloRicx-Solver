@@ -26,16 +26,16 @@
 
 #------------------- Type(s) definitions ---------------------------
 
-type Generation 
+type Generation
 	nbInd::Int64
 	people::Array{Array{Int64,1},1} #Population of solutions
-	fitnesses::Array{Int64} #To delete and only have the barrel ? 
+	fitnesses::Array{Int64} #To delete and only have the barrel ?
 	roulette::Array{Int64} #fitness' cumsum for random picking
 	mchance::Float64 #Mutation chance
 	gen_mean::Float64 #Fitness mean for this generation
 	gen_best::Int64 #Best fitness of the generation
 	fittest::Array{Int64,1} #Best solution of the generation (probable duplicate with gen_best but it makes some things easier to code)
-end 
+end
 
 #-------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ function firstGen(flux, distances, nbInd)
 			fittest = gen[i]
 		end
 	end
-	
+
 	roulette = cumsum(fitnesses)
 
 	return Generation(nbInd, starter, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
@@ -72,8 +72,12 @@ end
 
 function nextGen(objective, constraints, people::Generation)
 	m,n = size(constraints)
-	for i=1:people.nbInd
-		
+
+	for i=1:people.nbInd/2
+		randomNum1 = rand(1:people.nbInd)
+		randomNum2 = rand(1:people.nbInd)
+
+		#while fitness < curr_fit itérer -> sélectionner les parents
 	end
 end
 

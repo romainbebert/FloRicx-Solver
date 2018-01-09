@@ -26,4 +26,4 @@ function runAll()
 
 end
 
-runAll()
+runFile("qap/chr12a.dat")
