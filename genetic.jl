@@ -53,6 +53,7 @@ function firstGen(flux, distances, nbInd)
 	gen = []
 	nbEntrepots = size(distances,1)
 	fitnesses = zeros(Int32, nbInd)
+	roulette = zeros(Int32, nbInd)
 	curr_best = 2^31-1 #Initialized at max Int32 value
 
 	for i in 1:nbInd
@@ -65,20 +66,56 @@ function firstGen(flux, distances, nbInd)
 		end
 	end
 
-	roulette = cumsum(fitnesses)
+	roulette = curr_best .- fitnesses
 
-	return Generation(nbInd, starter, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
+	return Generation(nbInd, gen, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
 end
 
-function nextGen(objective, constraints, people::Generation)
+function nextGen(objective, constraints, population::Generation)
 	m,n = size(constraints)
+	newGen = []
 
-	for i=1:people.nbInd/2
-		randomNum1 = rand(1:people.nbInd)
-		randomNum2 = rand(1:people.nbInd)
+	#Création de la nouvelle génération par crossovers
+	for i=1:population.nbInd/2
 
-		#while fitness < curr_fit itérer -> sélectionner les parents
+		randomFit1 = rand(1:population.roulette[population.nbInd])
+		randomFit2 = rand(1:population.roulette[population.nbInd])
+
+		#Sélection des parents dans la roulette
+		iter = 1
+		while population.roulette[i] < randomFit1
+			iter += 1
+		end
+		parent1 = population.people[iter]
+
+		iter = 1
+		while population.roulette[i] < randomFit2
+			iter += 1
+		end
+		parent2 = population.people[iter]
+
+		push!(newGen, OX_crossover(parent1, parent2))
+
 	end
+
+	newFitnesses = zeros(Int32, population.nbInd)
+	#Update des fitnesses
+	for i in 1:nbInd
+		newFitnesses[i] = fitness(newGen[i], flux, distances)
+
+		if newFitnesses[i] < curr_best
+			curr_best = newFitnesses[i]
+			fittest = newGen[i]
+		end
+	end
+
+	#Actualisation de l'objet Génération
+	population.people = newGen
+	population.fitnesses = newFitnesses
+	population.roulette = newRoulette
+	population.gen_best = curr_best
+	population.fittest = fittest
+
 end
 
 #-------------------------------------------------------------------
@@ -157,6 +194,7 @@ function OX_crossover(p1,p2)
 	#http://www.rubicite.com/Tutorials/GeneticAlgorithms/CrossoverOperators/Order1CrossoverOperator.aspx
 end
 
+#Mutation by swapping
 function mutation(x,nbVar)
 	num1 = rand(1:nbVar)
 	num2 = rand(1:nbVar)
@@ -177,14 +215,13 @@ end
 
 #-------------------------------------------------------------------
 
-function geneticSolver(objective, constraints,mchance, gen_size, stopTime)
+function geneticSolver(X, objective, constraints,mchance, gen_size)
 
 	#Première génération random
 	populace = firstGen(objective, constraints, gen_size)
-	endDate = now() + Dates.Millisecond(stopTime)
 	i = 1
 
-	while(now() < endDate)
+	while(curr_best > X)
 		println("########### STARTING GENERATION ", i ," ###########")
 		new_gen = nextGen(objective, constraints, populace)
 		if curr_best < gen_best
