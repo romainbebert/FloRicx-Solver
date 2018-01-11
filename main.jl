@@ -6,9 +6,9 @@ include("genetic.jl")
 
 function runFile(filename)
 
-	instance = loadQAP(filename)
+	X, flux, distances = loadQAP(filename)
 
-	geneti(instance)
+	geneticSolver(X, flux, distances, 0.1, 50)
 
 end
 
@@ -18,9 +18,9 @@ function runAll()
 
 	for file in fnames
 
-		instance = loadQAP(file)
+		X, flux, distances = loadQAP(file)
 
-		#genetic(instance)
+		#geneticSolver(X, flux, distances, 0.1, 50)
 
 	end
 

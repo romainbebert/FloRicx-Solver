@@ -2,7 +2,7 @@
 # Original code for loading SPP instances by Xavier Gandibleux
 # Loading an instance of QAP (format: FloRicx library)
 
-function loadSPP(fname)
+function loadQAP(fname)
     f=open(fname)
     # lecture du nbre d'entrepots et d'emplacements
     n = parse.(Int, readline(f))
@@ -37,6 +37,5 @@ function loadSPP(fname)
     end
 	
     close(f)
-    println(flux)
     return X, flux, distances
 end

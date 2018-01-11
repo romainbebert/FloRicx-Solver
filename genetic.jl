@@ -41,8 +41,22 @@ end
 
 #May be overkill to do a function, but in case we need to add constraint checking or something here
 function fitness(solution, flux, distances)
+	#=
+	tot = 0
 
-	return sum(flux[i,solution[i]]*distances[i, solution[i]] for i in 1:size(distances,1))
+	for i in 1:size(flux,1)
+		for j in 1:size(flux,1)
+			if solution[i] == j
+				tot += flux[i, solution[i]]*distances[i, solution[i]]
+			end
+		end
+	end
+	
+	return tot
+
+	=#
+
+	#return sum(flux[i,solution[i]]*distances[i, solution[i]] for i in 1:size(distances,1))
 
 end
 
@@ -55,6 +69,7 @@ function firstGen(flux, distances, nbInd)
 	fitnesses = zeros(Int32, nbInd)
 	roulette = zeros(Int32, nbInd)
 	curr_best = 2^31-1 #Initialized at max Int32 value
+	fittest = []
 
 	for i in 1:nbInd
 		push!(gen,shuffle(1:nbEntrepots))
@@ -66,12 +81,12 @@ function firstGen(flux, distances, nbInd)
 		end
 	end
 
-	roulette = curr_best .- fitnesses
+	#roulette = curr_best .- fitnesses
 
 	return Generation(nbInd, gen, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
 end
 
-function nextGen(objective, constraints, population::Generation)
+function nextGen(flux, distances, population::Generation)
 	m,n = size(constraints)
 	newGen = []
 
@@ -101,6 +116,11 @@ function nextGen(objective, constraints, population::Generation)
 	newFitnesses = zeros(Int32, population.nbInd)
 	#Update des fitnesses
 	for i in 1:nbInd
+		#Potentielle mutation
+		if rand() > population.mchance
+			newGen[i] = mutation(newGen[i])
+		end
+
 		newFitnesses[i] = fitness(newGen[i], flux, distances)
 
 		if newFitnesses[i] < curr_best
@@ -195,7 +215,8 @@ function OX_crossover(p1,p2)
 end
 
 #Mutation by swapping
-function mutation(x,nbVar)
+function mutation(x)
+	nbVar = size(x,1)
 	num1 = rand(1:nbVar)
 	num2 = rand(1:nbVar)
 	#Pas indispensable mais ça serait dommage de gâcher une occurence de mutation
@@ -215,25 +236,30 @@ end
 
 #-------------------------------------------------------------------
 
-function geneticSolver(X, objective, constraints,mchance, gen_size)
+function geneticSolver(X, flux, distances,mchance, gen_size)
 
 	#Première génération random
-	populace = firstGen(objective, constraints, gen_size)
+	populace = firstGen(flux, distances, gen_size)
 	i = 1
+	curr_best = populace.gen_best
 
 	while(curr_best > X)
 		println("########### STARTING GENERATION ", i ," ###########")
-		new_gen = nextGen(objective, constraints, populace)
-		if curr_best < gen_best
-			curr_best = gen_best
+		nextGen(flux, distances, populace)
+		if curr_best < populace.gen_best
+			curr_best = populace.gen_best
 		end
 
-		println("CURRENT BEST : ", curr_best)
+		println("CURRENT BEST : ", populace.curr_best)
 		println("GEN STATS :")
-		println("	MEAN : ", gen_mean)
-		println("	BEST : ", gen_best)
+		println("	MEAN : ", populace.gen_mean)
+		println("	BEST : ", populace.gen_best)
 		println("##############################################")
 		i+=1
 	end
+
+	println("z = ", populace.gen_best,"\nSolution : ", populace.fittest)
+
+	return (populace.gen_best, populace.fittest)
 
 end
