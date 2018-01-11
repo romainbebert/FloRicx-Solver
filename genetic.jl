@@ -68,7 +68,6 @@ end
 
 function nextGen(flux, distances, population::Generation)
 	newGen = []
-
 	#Création de la nouvelle génération par crossovers
 	for i in 1:floor(Int,population.nbInd/2)
 		randomFit1 = rand(1:population.roulette[1])
@@ -105,16 +104,17 @@ function nextGen(flux, distances, population::Generation)
 		newFitnesses[i] = fitness(newGen[i], flux, distances)
 
 		if newFitnesses[i] < curr_best
-			println("test")
 			curr_best = newFitnesses[i]
 			fittest = newGen[i]
 		end
 	end
 
+	roulette = cumsum(newFitnesses)
+
 	#Actualisation de l'objet Génération
 	population.people = newGen
 	population.fitnesses = newFitnesses
-	population.roulette = curr_best .- newFitnesses
+	population.roulette = broadcast(-, roulette[population.nbInd], roulette)
 	population.gen_best = curr_best
 	population.fittest = fittest
 
@@ -129,7 +129,6 @@ end
 function crossover(p1,p2)
 	#Init indice random et découpage des parents
 	ind = rand(1:size(p1,1))
-	println(ind)
 	p11 = splice!(p1,1:ind)
 	p12 = p1
 	p21 = splice!(p2,1:ind)
@@ -248,9 +247,9 @@ function geneticSolver(X, flux, distances,mchance, gen_size)
 		end
 
 		println("CURRENT BEST : ", populace.gen_best)
-		println("GEN STATS :")
-		println("	MEAN : ", populace.gen_mean)
-		println("	BEST : ", populace.gen_best)
+		#println("GEN STATS :")
+		#println("	MEAN : ", populace.gen_mean)
+		println("	GEN BEST : ", populace.gen_best)
 		println("##############################################")
 		i+=1
 	end

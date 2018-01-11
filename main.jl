@@ -26,6 +26,4 @@ function runAll()
 
 end
 
-srand(42)
-
 runFile("qap/chr12a.dat")
