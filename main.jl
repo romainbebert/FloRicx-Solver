@@ -8,7 +8,7 @@ function runFile(filename)
 
 	X, flux, distances = loadQAP(filename)
 
-	geneticSolver(X, flux, distances, 0.1, 50)
+	geneticSolver(X, flux, distances, 0.1, 10)
 
 end
 
@@ -25,5 +25,7 @@ function runAll()
 	end
 
 end
+
+srand(42)
 
 runFile("qap/chr12a.dat")

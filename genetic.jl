@@ -39,27 +39,6 @@ end
 
 #-------------------------------------------------------------------
 
-#May be overkill to do a function, but in case we need to add constraint checking or something here
-function fitness(solution, flux, distances)
-	#=
-	tot = 0
-
-	for i in 1:size(flux,1)
-		for j in 1:size(flux,1)
-			if solution[i] == j
-				tot += flux[i, solution[i]]*distances[i, solution[i]]
-			end
-		end
-	end
-	
-	return tot
-
-	=#
-
-	#return sum(flux[i,solution[i]]*distances[i, solution[i]] for i in 1:size(distances,1))
-
-end
-
 #--------------- Generation fabrication functions ------------------
 
 function firstGen(flux, distances, nbInd)
@@ -81,41 +60,43 @@ function firstGen(flux, distances, nbInd)
 		end
 	end
 
-	#roulette = curr_best .- fitnesses
+	roulette = cumsum(fitnesses)
+	roulette = broadcast(-, fitnesses[nbInd], fitnesses)
 
-	return Generation(nbInd, gen, fitnesses, roulette, 0.1, roulette[nbInd]/nbInd, curr_best, fittest)
+	return Generation(nbInd, gen, fitnesses, roulette, 0.1, roulette[1]/nbInd, curr_best, fittest)
 end
 
 function nextGen(flux, distances, population::Generation)
-	m,n = size(constraints)
 	newGen = []
 
 	#Création de la nouvelle génération par crossovers
-	for i=1:population.nbInd/2
-
-		randomFit1 = rand(1:population.roulette[population.nbInd])
-		randomFit2 = rand(1:population.roulette[population.nbInd])
+	for i in 1:floor(Int,population.nbInd/2)
+		randomFit1 = rand(1:population.roulette[1])
+		randomFit2 = rand(1:population.roulette[1])
 
 		#Sélection des parents dans la roulette
 		iter = 1
-		while population.roulette[i] < randomFit1
+		while population.roulette[iter] < randomFit1
 			iter += 1
 		end
 		parent1 = population.people[iter]
 
 		iter = 1
-		while population.roulette[i] < randomFit2
+		while population.roulette[iter] < randomFit2
 			iter += 1
 		end
 		parent2 = population.people[iter]
-
-		push!(newGen, OX_crossover(parent1, parent2))
+		c1, c2 = OX_crossover(parent1, parent2)
+		push!(newGen, c1)
+		push!(newGen, c2)
 
 	end
 
 	newFitnesses = zeros(Int32, population.nbInd)
+	curr_best = 2^31-1
+	fittest = []
 	#Update des fitnesses
-	for i in 1:nbInd
+	for i in 1:population.nbInd
 		#Potentielle mutation
 		if rand() > population.mchance
 			newGen[i] = mutation(newGen[i])
@@ -124,6 +105,7 @@ function nextGen(flux, distances, population::Generation)
 		newFitnesses[i] = fitness(newGen[i], flux, distances)
 
 		if newFitnesses[i] < curr_best
+			println("test")
 			curr_best = newFitnesses[i]
 			fittest = newGen[i]
 		end
@@ -132,7 +114,7 @@ function nextGen(flux, distances, population::Generation)
 	#Actualisation de l'objet Génération
 	population.people = newGen
 	population.fitnesses = newFitnesses
-	population.roulette = newRoulette
+	population.roulette = curr_best .- newFitnesses
 	population.gen_best = curr_best
 	population.fittest = fittest
 
@@ -226,12 +208,27 @@ function mutation(x)
 
 	swap1 = min(num1, num2)
 	swap2 = max(num1, num2)
-
 	tmp = x[swap1]
 	x[swap1] = x[swap2]
 	x[swap2] = tmp
 
 	return x
+end
+
+#May be overkill to do a function, but in case we need to add constraint checking or something here
+function fitness(solution, flux, distances)
+
+	tot = 0
+
+	for i in 1:size(flux,1)
+		for j in i:size(flux,1)
+			tot += flux[i, j]*distances[solution[i], solution[j]]
+
+		end
+	end
+
+	return tot*2
+
 end
 
 #-------------------------------------------------------------------
@@ -250,7 +247,7 @@ function geneticSolver(X, flux, distances,mchance, gen_size)
 			curr_best = populace.gen_best
 		end
 
-		println("CURRENT BEST : ", populace.curr_best)
+		println("CURRENT BEST : ", populace.gen_best)
 		println("GEN STATS :")
 		println("	MEAN : ", populace.gen_mean)
 		println("	BEST : ", populace.gen_best)
