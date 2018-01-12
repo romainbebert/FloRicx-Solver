@@ -8,7 +8,7 @@ function runFile(filename)
 
 	X, flux, distances = loadQAP(filename)
 
-	geneticSolver(X, flux, distances, 0.1, 10)
+	z, sol = geneticSolver(X, flux, distances, 0.1, 100)
 
 end
 

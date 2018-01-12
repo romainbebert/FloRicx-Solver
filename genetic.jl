@@ -61,7 +61,7 @@ function firstGen(flux, distances, nbInd)
 	end
 
 	roulette = cumsum(fitnesses)
-	roulette = broadcast(-, fitnesses[nbInd], fitnesses)
+	roulette = broadcast(-, roulette[nbInd], fitnesses)
 
 	return Generation(nbInd, gen, fitnesses, roulette, 0.1, roulette[1]/nbInd, curr_best, fittest)
 end
@@ -69,19 +69,25 @@ end
 function nextGen(flux, distances, population::Generation)
 	newGen = []
 	#Création de la nouvelle génération par crossovers
-	for i in 1:floor(Int,population.nbInd/2)
+	for i in floor(Int,1):floor(Int,population.nbInd/2)
 		randomFit1 = rand(1:population.roulette[1])
 		randomFit2 = rand(1:population.roulette[1])
 
 		#Sélection des parents dans la roulette
 		iter = 1
-		while population.roulette[iter] < randomFit1
+		while randomFit1 > population.roulette[iter]
+			if iter == 100
+				println(randomFit1)
+			end
 			iter += 1
 		end
 		parent1 = population.people[iter]
 
 		iter = 1
-		while population.roulette[iter] < randomFit2
+		while randomFit2 > population.roulette[iter]
+			if iter == 100
+				println(randomFit2)
+			end
 			iter += 1
 		end
 		parent2 = population.people[iter]
@@ -214,20 +220,34 @@ function mutation(x)
 	return x
 end
 
-#May be overkill to do a function, but in case we need to add constraint checking or something here
 function fitness(solution, flux, distances)
-
 	tot = 0
-
 	for i in 1:size(flux,1)
 		for j in i:size(flux,1)
 			tot += flux[i, j]*distances[solution[i], solution[j]]
 
 		end
 	end
-
 	return tot*2
+end
 
+function localsearch(solution, flux, distances)
+	fittest = copy(solution)
+	curr_best = fitness(solution,flux,distances)
+	for i in 1:size(solution,1)-1
+		for j in i+1:size(solution,1)
+			new_sol = copy(solution)
+			new_sol[i] = solution[j]
+			new_sol[j] = solution[i]
+			val = fitness(new_sol, flux, distances)
+			if val > curr_best
+				fittest = new_sol
+				curr_best = val
+			end
+		end
+	end
+	
+	return fittest
 end
 
 #-------------------------------------------------------------------
@@ -240,17 +260,16 @@ function geneticSolver(X, flux, distances,mchance, gen_size)
 	curr_best = populace.gen_best
 
 	while(curr_best > X)
-		println("########### STARTING GENERATION ", i ," ###########")
+		println("\n########### STARTING GENERATION ", i ," ########### \n")
 		nextGen(flux, distances, populace)
-		if curr_best < populace.gen_best
+		if populace.gen_best < curr_best
 			curr_best = populace.gen_best
 		end
 
-		println("CURRENT BEST : ", populace.gen_best)
+		println("	CURRENT BEST : ", curr_best)
 		#println("GEN STATS :")
 		#println("	MEAN : ", populace.gen_mean)
 		println("	GEN BEST : ", populace.gen_best)
-		println("##############################################")
 		i+=1
 	end
 
